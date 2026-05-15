@@ -1,61 +1,1904 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tokenomics</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      }
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TokenForge — Enterprise LLM &amp; Agent Cost Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --blue-50: #eef4ff;
+    --blue-100: #dbe7ff;
+    --blue-200: #bfd3ff;
+    --blue-300: #93b4ff;
+    --blue-400: #5d8aff;
+    --blue-500: #3a66ff;
+    --blue-600: #1e44e6;
+    --blue-700: #1633c4;
+    --blue-800: #142c9c;
+    --blue-900: #0a1c66;
+    --blue-950: #050d33;
+    --ink: #0a1330;
+    --ink-2: #1a2447;
+    --slate: #5a6584;
+    --slate-2: #8590ab;
+    --line: #e2e7f2;
+    --bg: #f5f7fc;
+    --white: #ffffff;
+    --success: #0a8754;
+    --warn: #d97706;
+    --danger: #dc2626;
+    --grad: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-800) 100%);
+    --grad-soft: linear-gradient(135deg, var(--blue-50) 0%, #e9efff 100%);
+    --shadow-sm: 0 1px 2px rgba(10, 28, 102, 0.06);
+    --shadow: 0 4px 16px rgba(10, 28, 102, 0.08);
+    --shadow-lg: 0 12px 40px rgba(10, 28, 102, 0.12);
+    --shadow-xl: 0 24px 64px rgba(10, 28, 102, 0.18);
+    --radius: 12px;
+    --radius-lg: 18px;
+  }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: radial-gradient(circle at top, #1f2937, #0f172a);
-      }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-      main {
-        width: min(720px, 92vw);
-        padding: 2rem;
-        border-radius: 1rem;
-        background: rgb(17 24 39 / 90%);
-        border: 1px solid rgb(148 163 184 / 30%);
-        box-shadow: 0 20px 45px rgb(2 6 23 / 40%);
-      }
+  html { scroll-behavior: smooth; }
 
-      h1 {
-        margin-top: 0;
-        font-size: clamp(1.8rem, 4vw, 2.5rem);
-      }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
 
-      p {
-        line-height: 1.6;
-      }
+  h1, h2, h3, h4 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
 
-      .pill {
-        display: inline-block;
-        margin-top: 1rem;
-        padding: 0.4rem 0.8rem;
-        border-radius: 999px;
-        font-size: 0.9rem;
-        border: 1px solid rgb(148 163 184 / 40%);
-        background: rgb(30 41 59 / 70%);
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: var(--grad);
+    display: grid; place-items: center;
+    color: white;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.25) 50%, transparent 60%);
+  }
+  .logo-text {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.02em;
+  }
+  .logo-text span { color: var(--blue-600); }
+
+  .nav-links { display: flex; gap: 4px; align-items: center; }
+  .nav-link {
+    text-decoration: none;
+    color: var(--slate);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.18s;
+  }
+  .nav-link:hover { color: var(--blue-700); background: var(--blue-50); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--grad);
+    color: white;
+    box-shadow: var(--shadow);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-ghost {
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { border-color: var(--blue-300); color: var(--blue-700); }
+  .btn-sm { padding: 7px 12px; font-size: 13px; }
+
+  /* ============ HERO ============ */
+  .hero {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 64px 28px 32px;
+    position: relative;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--blue-50);
+    color: var(--blue-700);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+  .hero h1 {
+    font-size: clamp(40px, 5vw, 64px);
+    margin-bottom: 20px;
+    color: var(--ink);
+  }
+  .hero h1 .accent {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+  }
+  .hero p.lede {
+    font-size: 18px;
+    color: var(--slate);
+    max-width: 580px;
+    margin-bottom: 28px;
+  }
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+  }
+  .stat-num {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--blue-700);
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  .hero-visual {
+    position: relative;
+    height: 380px;
+  }
+  .hero-card {
+    position: absolute;
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--line);
+  }
+  .hero-card-1 {
+    top: 0; right: 0;
+    width: 280px;
+    transform: rotate(2deg);
+    animation: float 6s ease-in-out infinite;
+  }
+  .hero-card-2 {
+    top: 110px; right: 130px;
+    width: 240px;
+    transform: rotate(-3deg);
+    animation: float 6s ease-in-out infinite reverse;
+    animation-delay: 1.5s;
+  }
+  .hero-card-3 {
+    bottom: 0; right: 40px;
+    width: 260px;
+    transform: rotate(1deg);
+    animation: float 6s ease-in-out infinite;
+    animation-delay: 3s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-12px) rotate(var(--r, 0deg)); }
+  }
+  .hero-card-1 { --r: 2deg; }
+  .hero-card-2 { --r: -3deg; }
+  .hero-card-3 { --r: 1deg; }
+
+  .card-label { font-size: 11px; color: var(--slate); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  .card-value { font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+  .card-meta { font-size: 12px; color: var(--blue-600); margin-top: 6px; font-weight: 500; }
+
+  .bg-decor {
+    position: absolute;
+    top: -100px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(58, 102, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* ============ MAIN ============ */
+  main { max-width: 1400px; margin: 0 auto; padding: 0 28px 64px; }
+
+  .section-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .section-header h2 { font-size: 28px; }
+  .section-header p { color: var(--slate); margin-top: 6px; font-size: 14px; }
+
+  /* ============ TEMPLATES ============ */
+  .templates {
+    margin-bottom: 40px;
+    padding: 28px;
+    background: white;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .template-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    padding: 4px;
+    background: var(--bg);
+    border-radius: 10px;
+    width: fit-content;
+  }
+  .tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--slate);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .tab.active { background: white; color: var(--blue-700); box-shadow: var(--shadow-sm); }
+  .tab:hover:not(.active) { color: var(--ink); }
+
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .template-card {
+    padding: 16px;
+    background: var(--bg);
+    border: 1.5px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+  .template-card:hover {
+    background: white;
+    border-color: var(--blue-300);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .template-card.active {
+    background: var(--blue-50);
+    border-color: var(--blue-600);
+  }
+  .template-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .template-provider {
+    font-size: 11px;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .template-price {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--blue-700);
+    font-weight: 600;
+  }
+  .template-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--blue-100);
+    color: var(--blue-800);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-left: 6px;
+  }
+
+  /* ============ CALCULATOR ============ */
+  .calc-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .panel {
+    background: white;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 22px 26px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .panel-header h3 {
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-header h3 .num {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: var(--grad);
+    color: white;
+    display: grid; place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .panel-body { padding: 22px 26px; }
+
+  .group { margin-bottom: 22px; }
+  .group:last-child { margin-bottom: 0; }
+  .group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: var(--blue-700);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--line);
+  }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  .row-3 { grid-template-columns: repeat(3, 1fr); }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .label-hint {
+    font-size: 11px;
+    color: var(--slate-2);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  input[type=number], input[type=text], select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--ink);
+    transition: all 0.18s;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--blue-500);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(58, 102, 255, 0.12);
+  }
+  select {
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a6584' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 34px;
+  }
+
+  .input-suffix {
+    position: relative;
+  }
+  .input-suffix input { padding-right: 50px; }
+  .input-suffix-label {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--slate);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 9px;
+    margin-bottom: 8px;
+  }
+  .toggle-row:last-child { margin-bottom: 0; }
+  .toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .toggle-label-text { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .toggle-label-desc { font-size: 11px; color: var(--slate); }
+
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #cdd6e8;
+    border-radius: 22px;
+    transition: 0.2s;
+  }
+  .slider::before {
+    position: absolute; content: "";
+    height: 16px; width: 16px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  input:checked + .slider { background-color: var(--blue-600); }
+  input:checked + .slider::before { transform: translateX(18px); }
+
+  /* ============ RESULTS ============ */
+  .results-panel {
+    position: sticky;
+    top: 96px;
+  }
+
+  .summary-hero {
+    padding: 28px 26px;
+    background: var(--grad);
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-hero::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  .summary-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-bottom: 8px;
+  }
+  .summary-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .summary-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .summary-cell {
+    padding: 18px 20px;
+    border-right: 1px solid var(--line);
+  }
+  .summary-cell:last-child { border-right: none; }
+  .summary-cell .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--slate);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .summary-cell .value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .summary-cell .value .unit {
+    font-size: 12px;
+    color: var(--slate);
+    font-weight: 500;
+    margin-left: 4px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .breakdown {
+    padding: 22px 26px;
+  }
+  .breakdown h4 {
+    font-size: 14px;
+    margin-bottom: 14px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .breakdown-item .name {
+    color: var(--ink-2);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .breakdown-item .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--blue-500);
+  }
+  .breakdown-item .amt {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .breakdown-item .pct {
+    color: var(--slate);
+    font-size: 11px;
+    margin-left: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .chart-wrap {
+    padding: 22px 26px;
+    border-top: 1px solid var(--line);
+  }
+  .chart-wrap canvas { max-height: 220px; }
+
+  .actions {
+    padding: 16px 26px;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .actions .btn { flex: 1; justify-content: center; min-width: 130px; }
+
+  /* ============ COMPARISON ============ */
+  .comparison-section {
+    margin-top: 48px;
+    padding: 32px;
+    background: white;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .comp-table-wrap { overflow-x: auto; margin-top: 16px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 14px;
+    background: var(--bg);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--slate);
+    font-weight: 700;
+    border-bottom: 1px solid var(--line);
+  }
+  th:first-child { border-radius: 8px 0 0 0; }
+  th:last-child { border-radius: 0 8px 0 0; }
+  td {
+    padding: 14px;
+    border-bottom: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  td:first-child { font-family: 'Inter', sans-serif; font-weight: 600; }
+  tr:hover td { background: var(--bg); }
+  tr:last-child td { border-bottom: none; }
+  .cost-cell { font-weight: 600; color: var(--blue-700); }
+  .savings-positive { color: var(--success); font-weight: 600; }
+  .savings-negative { color: var(--danger); font-weight: 600; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    margin-top: 80px;
+    background: var(--ink);
+    color: #cdd6e8;
+    padding: 56px 28px 28px;
+  }
+  .footer-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 40px;
+  }
+  .footer-brand h4 {
+    color: white;
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+  .footer-brand p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #8590ab;
+    max-width: 440px;
+  }
+  .footer-col h5 {
+    font-family: 'Inter', sans-serif;
+    color: white;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .footer-col a, .footer-col p {
+    display: block;
+    color: #8590ab;
+    text-decoration: none;
+    font-size: 13px;
+    margin-bottom: 8px;
+    transition: color 0.18s;
+  }
+  .footer-col a:hover { color: var(--blue-300); }
+  .footer-bottom {
+    border-top: 1px solid #1f2a4a;
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    color: #6c7894;
+  }
+  .footer-bottom .disclaimer {
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* ============ TOAST ============ */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    padding: 14px 20px;
+    background: var(--ink);
+    color: white;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-xl);
+    transform: translateY(120%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toast.show { transform: translateY(0); }
+  .toast::before {
+    content: '✓';
+    width: 22px; height: 22px;
+    background: var(--success);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1100px) {
+    .calc-layout { grid-template-columns: 1fr; }
+    .results-panel { position: static; }
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-visual { display: none; }
+  }
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+    .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+    .hero { padding: 40px 20px 24px; }
+    .hero-stats { flex-wrap: wrap; gap: 20px; }
+    main { padding: 0 20px 48px; }
+    .row, .row-3 { grid-template-columns: 1fr; }
+    .summary-value { font-size: 40px; }
+    .panel-header, .panel-body { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">⟁</div>
+      <div class="logo-text">Token<span>Forge</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="#calculator" class="nav-link">Calculator</a>
+      <a href="#templates" class="nav-link">Templates</a>
+      <a href="#comparison" class="nav-link">Comparison</a>
+      <a href="https://github.com/brianhray/tokenforge" class="nav-link" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+    <button class="btn btn-primary" onclick="exportPDF()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export Report
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="bg-decor"></div>
+  <div class="hero-grid">
+    <div>
+      <div class="hero-badge">Enterprise LLM Cost Intelligence</div>
+      <h1>Calculate the true cost of <span class="accent">AI at scale.</span></h1>
+      <p class="lede">A precision calculator for LLM token spend, agentic workflows, and enterprise AI deployments. Model your costs across providers, agent loops, and infrastructure overhead — before you commit a single API call.</p>
+      <div class="hero-stats">
+        <div>
+          <div class="stat-num" id="hero-stat-1">$0</div>
+          <div class="stat-label">Monthly Spend</div>
+        </div>
+        <div>
+          <div class="stat-num" id="hero-stat-2">0M</div>
+          <div class="stat-label">Tokens / Month</div>
+        </div>
+        <div>
+          <div class="stat-num" id="hero-stat-3">$0</div>
+          <div class="stat-label">Cost Per Task</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card hero-card-1">
+        <div class="card-label">Input Tokens</div>
+        <div class="card-value mono" id="hv-input">2,400</div>
+        <div class="card-meta">avg per request ↑</div>
+      </div>
+      <div class="hero-card hero-card-2">
+        <div class="card-label">Output Tokens</div>
+        <div class="card-value mono" id="hv-output">800</div>
+        <div class="card-meta">avg per request</div>
+      </div>
+      <div class="hero-card hero-card-3">
+        <div class="card-label">Effective Cost / 1M</div>
+        <div class="card-value mono" id="hv-eff">$4.50</div>
+        <div class="card-meta">all-in blended ↗</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <!-- TEMPLATES -->
+  <section class="templates" id="templates">
+    <div class="section-header">
+      <div>
+        <h2>Quick Start Templates</h2>
+        <p>Load real-world configurations for popular LLMs and agentic systems.</p>
+      </div>
+    </div>
+    <div class="template-tabs">
+      <button class="tab active" data-cat="llm" onclick="switchTab('llm', this)">LLM Models</button>
+      <button class="tab" data-cat="agent" onclick="switchTab('agent', this)">Agentic Workflows</button>
+    </div>
+    <div class="template-grid" id="template-grid"></div>
+  </section>
+
+  <!-- CALCULATOR -->
+  <section id="calculator" class="calc-layout">
+    <!-- INPUTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3><span class="num">01</span> Configuration</h3>
+        <button class="btn btn-ghost btn-sm" onclick="resetForm()">Reset</button>
+      </div>
+      <div class="panel-body">
+
+        <div class="group">
+          <div class="group-title">Model Pricing (per 1M tokens, USD)</div>
+          <div class="row">
+            <div class="field">
+              <label>Model Name <span class="label-hint">descriptive</span></label>
+              <input type="text" id="model-name" value="Custom Model" />
+            </div>
+            <div class="field">
+              <label>Provider</label>
+              <input type="text" id="provider" value="Custom" />
+            </div>
+          </div>
+          <div class="row-3 row">
+            <div class="field">
+              <label>Input Price <span class="label-hint">$/1M</span></label>
+              <div class="input-suffix">
+                <input type="number" id="input-price" value="3.00" step="0.01" min="0" />
+                <span class="input-suffix-label">USD</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Output Price <span class="label-hint">$/1M</span></label>
+              <div class="input-suffix">
+                <input type="number" id="output-price" value="15.00" step="0.01" min="0" />
+                <span class="input-suffix-label">USD</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Cached Input <span class="label-hint">$/1M</span></label>
+              <div class="input-suffix">
+                <input type="number" id="cached-price" value="0.30" step="0.01" min="0" />
+                <span class="input-suffix-label">USD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Per-Request Token Usage</div>
+          <div class="row">
+            <div class="field">
+              <label>Input Tokens <span class="label-hint">avg per call</span></label>
+              <input type="number" id="input-tokens" value="2400" min="0" />
+            </div>
+            <div class="field">
+              <label>Output Tokens <span class="label-hint">avg per call</span></label>
+              <input type="number" id="output-tokens" value="800" min="0" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Cache Hit Rate <span class="label-hint">% of input</span></label>
+              <div class="input-suffix">
+                <input type="number" id="cache-rate" value="0" min="0" max="100" />
+                <span class="input-suffix-label">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Avg System Prompt <span class="label-hint">overhead tokens</span></label>
+              <input type="number" id="system-tokens" value="500" min="0" />
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Volume & Scale</div>
+          <div class="row-3 row">
+            <div class="field">
+              <label>Requests / User <span class="label-hint">per day</span></label>
+              <input type="number" id="req-per-user" value="50" min="0" />
+            </div>
+            <div class="field">
+              <label>Active Users</label>
+              <input type="number" id="users" value="1000" min="0" />
+            </div>
+            <div class="field">
+              <label>Working Days <span class="label-hint">per month</span></label>
+              <input type="number" id="days" value="22" min="1" max="31" />
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Agentic Workflow</div>
+          <div class="row">
+            <div class="field">
+              <label>Agent Loop Iterations <span class="label-hint">avg per task</span></label>
+              <input type="number" id="agent-loops" value="1" min="1" step="0.1" />
+            </div>
+            <div class="field">
+              <label>Tool Calls / Loop <span class="label-hint">avg</span></label>
+              <input type="number" id="tool-calls" value="0" min="0" step="0.1" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Tool Response Tokens <span class="label-hint">avg per call</span></label>
+              <input type="number" id="tool-tokens" value="0" min="0" />
+            </div>
+            <div class="field">
+              <label>Context Growth Factor <span class="label-hint">multi-turn buildup</span></label>
+              <input type="number" id="context-growth" value="1.0" min="1" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Enterprise Overhead</div>
+          <div class="row">
+            <div class="field">
+              <label>Embeddings Cost <span class="label-hint">$/1M tokens</span></label>
+              <div class="input-suffix">
+                <input type="number" id="embed-price" value="0.13" step="0.01" min="0" />
+                <span class="input-suffix-label">USD</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>RAG Retrieval Tokens <span class="label-hint">per req</span></label>
+              <input type="number" id="rag-tokens" value="0" min="0" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Vector DB Cost <span class="label-hint">$/month flat</span></label>
+              <div class="input-suffix">
+                <input type="number" id="vector-cost" value="0" step="1" min="0" />
+                <span class="input-suffix-label">USD</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Infrastructure <span class="label-hint">$/month flat</span></label>
+              <div class="input-suffix">
+                <input type="number" id="infra-cost" value="0" step="1" min="0" />
+                <span class="input-suffix-label">USD</span>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Overhead Multiplier <span class="label-hint">retries, errors</span></label>
+              <input type="number" id="overhead-mult" value="1.0" min="1" step="0.05" />
+            </div>
+            <div class="field">
+              <label>Margin / Buffer <span class="label-hint">safety %</span></label>
+              <div class="input-suffix">
+                <input type="number" id="margin" value="0" min="0" step="1" />
+                <span class="input-suffix-label">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Options</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="toggle-label-text">Include Caching Discount</span>
+              <span class="toggle-label-desc">Apply cache hit rate to input pricing</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="opt-cache" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="toggle-label-text">Account for Context Growth</span>
+              <span class="toggle-label-desc">Apply multi-turn token buildup</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="opt-context" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="panel results-panel">
+      <div class="summary-hero">
+        <div class="summary-label">Estimated Monthly Cost</div>
+        <div class="summary-value" id="total-cost">$0.00</div>
+        <div class="summary-sub" id="total-sub">— per month at current configuration</div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="label">Per Request</div>
+          <div class="value" id="per-req">$0.0000</div>
+        </div>
+        <div class="summary-cell">
+          <div class="label">Per User / Day</div>
+          <div class="value" id="per-user">$0.00</div>
+        </div>
+        <div class="summary-cell">
+          <div class="label">Total Tokens / Month</div>
+          <div class="value" id="total-tokens">0<span class="unit">M</span></div>
+        </div>
+        <div class="summary-cell">
+          <div class="label">Annual Projection</div>
+          <div class="value" id="annual">$0</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <h4>Cost Breakdown <span style="color: var(--slate); font-weight: 400; font-size: 12px;">monthly</span></h4>
+        <div class="breakdown-list" id="breakdown"></div>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="costChart"></canvas>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Export JSON
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="exportPDF()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Export PDF
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section class="comparison-section" id="comparison">
+    <div class="section-header">
+      <div>
+        <h2>Model Comparison</h2>
+        <p>Side-by-side cost projection using your current usage pattern across leading models.</p>
+      </div>
+    </div>
+    <div class="comp-table-wrap">
+      <table id="comp-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Provider</th>
+            <th>Input ($/1M)</th>
+            <th>Output ($/1M)</th>
+            <th>Per Request</th>
+            <th>Monthly Total</th>
+            <th>vs Current</th>
+          </tr>
+        </thead>
+        <tbody id="comp-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>TokenForge</h4>
+        <p>An enterprise-grade calculator for modeling the cost of LLM and agentic AI workloads. Built for engineering leaders, finance teams, and AI architects who need to forecast spend before scaling.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Resources</h5>
+        <a href="#calculator">Calculator</a>
+        <a href="#templates">Templates</a>
+        <a href="#comparison">Model Comparison</a>
+        <a href="https://github.com/brianhray/tokenforge" target="_blank" rel="noopener">GitHub Repository ↗</a>
+      </div>
+      <div class="footer-col">
+        <h5>Contact</h5>
+        <p>Questions or feedback?</p>
+        <a href="mailto:brianhray@gmail.com">brianhray@gmail.com</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="disclaimer">
+        Built with Claude by Anthropic. Pricing data reflects published rates at time of authoring and may not represent current provider pricing — verify with your provider before making commitments. <strong style="color: #cdd6e8;">This tool is provided as-is with no warranties or guarantees</strong> of accuracy, completeness, or fitness for any particular purpose. Always validate cost estimates against your actual usage patterns and provider invoices.
+      </div>
+      <div>&copy; 2026 TokenForge</div>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast">Action completed</div>
+
+<script>
+/* ============ TEMPLATE DATA ============ */
+const TEMPLATES = {
+  llm: [
+    { name: 'GPT-4o', provider: 'OpenAI', tag: 'flagship', inputPrice: 2.50, outputPrice: 10.00, cachedPrice: 1.25, inputTokens: 2000, outputTokens: 800, embed: 0.13 },
+    { name: 'GPT-4o mini', provider: 'OpenAI', tag: 'efficient', inputPrice: 0.15, outputPrice: 0.60, cachedPrice: 0.075, inputTokens: 2000, outputTokens: 800, embed: 0.02 },
+    { name: 'GPT-4.1', provider: 'OpenAI', tag: 'reasoning', inputPrice: 2.00, outputPrice: 8.00, cachedPrice: 0.50, inputTokens: 3000, outputTokens: 1200, embed: 0.13 },
+    { name: 'o3-mini', provider: 'OpenAI', tag: 'reasoning', inputPrice: 1.10, outputPrice: 4.40, cachedPrice: 0.55, inputTokens: 2500, outputTokens: 2000, embed: 0.13 },
+    { name: 'Claude Opus 4', provider: 'Anthropic', tag: 'flagship', inputPrice: 15.00, outputPrice: 75.00, cachedPrice: 1.50, inputTokens: 3000, outputTokens: 1200, embed: 0.10 },
+    { name: 'Claude Sonnet 4.5', provider: 'Anthropic', tag: 'balanced', inputPrice: 3.00, outputPrice: 15.00, cachedPrice: 0.30, inputTokens: 2500, outputTokens: 1000, embed: 0.10 },
+    { name: 'Claude Haiku 4.5', provider: 'Anthropic', tag: 'fast', inputPrice: 1.00, outputPrice: 5.00, cachedPrice: 0.10, inputTokens: 2000, outputTokens: 600, embed: 0.10 },
+    { name: 'Gemini 2.5 Pro', provider: 'Google', tag: 'flagship', inputPrice: 1.25, outputPrice: 10.00, cachedPrice: 0.31, inputTokens: 3500, outputTokens: 1000, embed: 0.025 },
+    { name: 'Gemini 2.5 Flash', provider: 'Google', tag: 'fast', inputPrice: 0.30, outputPrice: 2.50, cachedPrice: 0.075, inputTokens: 2500, outputTokens: 800, embed: 0.025 },
+    { name: 'Llama 3.3 70B', provider: 'Meta / Together', tag: 'open', inputPrice: 0.88, outputPrice: 0.88, cachedPrice: 0.88, inputTokens: 2200, outputTokens: 800, embed: 0.10 },
+    { name: 'DeepSeek V3', provider: 'DeepSeek', tag: 'value', inputPrice: 0.27, outputPrice: 1.10, cachedPrice: 0.07, inputTokens: 2500, outputTokens: 1000, embed: 0.10 },
+    { name: 'Mistral Large 2', provider: 'Mistral', tag: 'flagship', inputPrice: 2.00, outputPrice: 6.00, cachedPrice: 2.00, inputTokens: 2200, outputTokens: 800, embed: 0.10 },
+  ],
+  agent: [
+    {
+      name: 'Customer Support Agent', provider: 'Multi-turn chat', tag: 'common',
+      inputPrice: 3.00, outputPrice: 15.00, cachedPrice: 0.30,
+      inputTokens: 1200, outputTokens: 400, systemTokens: 1500,
+      agentLoops: 2, toolCalls: 1, toolTokens: 300, contextGrowth: 1.4,
+      reqPerUser: 8, users: 5000, cacheRate: 60
+    },
+    {
+      name: 'Coding Assistant', provider: 'Code generation', tag: 'high-volume',
+      inputPrice: 3.00, outputPrice: 15.00, cachedPrice: 0.30,
+      inputTokens: 4500, outputTokens: 1500, systemTokens: 2000,
+      agentLoops: 1.5, toolCalls: 2, toolTokens: 800, contextGrowth: 1.6,
+      reqPerUser: 30, users: 500, cacheRate: 70
+    },
+    {
+      name: 'Research Agent', provider: 'Deep research', tag: 'complex',
+      inputPrice: 3.00, outputPrice: 15.00, cachedPrice: 0.30,
+      inputTokens: 3000, outputTokens: 2500, systemTokens: 2500,
+      agentLoops: 8, toolCalls: 3, toolTokens: 1500, contextGrowth: 2.5,
+      reqPerUser: 4, users: 200, cacheRate: 40
+    },
+    {
+      name: 'Document RAG Agent', provider: 'Knowledge base', tag: 'rag',
+      inputPrice: 1.00, outputPrice: 5.00, cachedPrice: 0.10,
+      inputTokens: 800, outputTokens: 600, systemTokens: 800,
+      agentLoops: 1, toolCalls: 1, toolTokens: 200, contextGrowth: 1.0,
+      reqPerUser: 15, users: 2000, cacheRate: 50,
+      ragTokens: 3000, embedPrice: 0.13, vectorCost: 200
+    },
+    {
+      name: 'Sales SDR Agent', provider: 'Outbound automation', tag: 'workflow',
+      inputPrice: 0.15, outputPrice: 0.60, cachedPrice: 0.075,
+      inputTokens: 1800, outputTokens: 400, systemTokens: 1200,
+      agentLoops: 3, toolCalls: 2, toolTokens: 500, contextGrowth: 1.3,
+      reqPerUser: 100, users: 50, cacheRate: 65
+    },
+    {
+      name: 'Data Analysis Agent', provider: 'SQL + viz', tag: 'tools',
+      inputPrice: 3.00, outputPrice: 15.00, cachedPrice: 0.30,
+      inputTokens: 2500, outputTokens: 1200, systemTokens: 1800,
+      agentLoops: 4, toolCalls: 3, toolTokens: 2000, contextGrowth: 1.8,
+      reqPerUser: 12, users: 300, cacheRate: 55
+    },
+    {
+      name: 'Browser Use Agent', provider: 'Web automation', tag: 'expensive',
+      inputPrice: 3.00, outputPrice: 15.00, cachedPrice: 0.30,
+      inputTokens: 8000, outputTokens: 1500, systemTokens: 3000,
+      agentLoops: 12, toolCalls: 4, toolTokens: 6000, contextGrowth: 2.2,
+      reqPerUser: 5, users: 100, cacheRate: 30
+    },
+    {
+      name: 'Voice / Realtime Agent', provider: 'Voice-to-voice', tag: 'realtime',
+      inputPrice: 5.00, outputPrice: 20.00, cachedPrice: 0.50,
+      inputTokens: 1500, outputTokens: 800, systemTokens: 1000,
+      agentLoops: 6, toolCalls: 1, toolTokens: 200, contextGrowth: 1.5,
+      reqPerUser: 20, users: 1000, cacheRate: 50
+    },
+  ]
+};
+
+/* ============ STATE ============ */
+let currentTab = 'llm';
+let chart = null;
+let lastSnapshot = null;
+
+/* ============ INIT ============ */
+function init() {
+  renderTemplates();
+  attachListeners();
+  recalculate();
+  initChart();
+}
+
+function attachListeners() {
+  document.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', recalculate);
+    el.addEventListener('change', recalculate);
+  });
+}
+
+/* ============ TEMPLATES ============ */
+function switchTab(cat, btn) {
+  currentTab = cat;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderTemplates();
+}
+
+function renderTemplates() {
+  const grid = document.getElementById('template-grid');
+  grid.innerHTML = '';
+  TEMPLATES[currentTab].forEach((t, i) => {
+    const card = document.createElement('button');
+    card.className = 'template-card';
+    card.onclick = () => loadTemplate(currentTab, i, card);
+    card.innerHTML = `
+      <div class="template-name">${t.name}<span class="template-tag">${t.tag}</span></div>
+      <div class="template-provider">${t.provider}</div>
+      <div class="template-price">$${t.inputPrice.toFixed(2)} in · $${t.outputPrice.toFixed(2)} out</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function loadTemplate(cat, idx, btn) {
+  const t = TEMPLATES[cat][idx];
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+
+  setVal('model-name', t.name);
+  setVal('provider', t.provider);
+  setVal('input-price', t.inputPrice);
+  setVal('output-price', t.outputPrice);
+  setVal('cached-price', t.cachedPrice ?? 0);
+  setVal('input-tokens', t.inputTokens);
+  setVal('output-tokens', t.outputTokens);
+  if (t.systemTokens !== undefined) setVal('system-tokens', t.systemTokens);
+  if (t.agentLoops !== undefined) setVal('agent-loops', t.agentLoops);
+  if (t.toolCalls !== undefined) setVal('tool-calls', t.toolCalls);
+  if (t.toolTokens !== undefined) setVal('tool-tokens', t.toolTokens);
+  if (t.contextGrowth !== undefined) setVal('context-growth', t.contextGrowth);
+  if (t.reqPerUser !== undefined) setVal('req-per-user', t.reqPerUser);
+  if (t.users !== undefined) setVal('users', t.users);
+  if (t.cacheRate !== undefined) setVal('cache-rate', t.cacheRate);
+  if (t.ragTokens !== undefined) setVal('rag-tokens', t.ragTokens);
+  if (t.embedPrice !== undefined) setVal('embed-price', t.embedPrice);
+  if (t.vectorCost !== undefined) setVal('vector-cost', t.vectorCost);
+
+  recalculate();
+  showToast(`Loaded ${t.name}`);
+}
+
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.value = v;
+}
+function getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function getStr(id) { return document.getElementById(id).value; }
+function getBool(id) { return document.getElementById(id).checked; }
+
+/* ============ CALCULATION ============ */
+function recalculate() {
+  // Pricing (per token, internally — store per 1M and convert)
+  const inputPrice = getNum('input-price') / 1_000_000;
+  const outputPrice = getNum('output-price') / 1_000_000;
+  const cachedPrice = getNum('cached-price') / 1_000_000;
+  const embedPrice = getNum('embed-price') / 1_000_000;
+
+  // Per-request token usage
+  const inputTokens = getNum('input-tokens');
+  const outputTokens = getNum('output-tokens');
+  const systemTokens = getNum('system-tokens');
+  const cacheRate = getNum('cache-rate') / 100;
+  const useCache = getBool('opt-cache');
+
+  // Agentic
+  const agentLoops = Math.max(1, getNum('agent-loops'));
+  const toolCalls = getNum('tool-calls');
+  const toolTokens = getNum('tool-tokens');
+  const contextGrowth = Math.max(1, getNum('context-growth'));
+  const useContext = getBool('opt-context');
+
+  // RAG / overhead
+  const ragTokens = getNum('rag-tokens');
+  const vectorCost = getNum('vector-cost');
+  const infraCost = getNum('infra-cost');
+  const overheadMult = Math.max(1, getNum('overhead-mult'));
+  const margin = getNum('margin') / 100;
+
+  // Volume
+  const reqPerUser = getNum('req-per-user');
+  const users = getNum('users');
+  const days = getNum('days');
+  const reqsPerMonth = reqPerUser * users * days;
+
+  // Per-request cost calculation
+  // Effective input per loop = (input + system + rag) * contextGrowth applied across loops
+  const baseInputPerLoop = inputTokens + systemTokens + ragTokens;
+  const contextFactor = useContext ? contextGrowth : 1;
+
+  // Total input tokens across all loops (with growth)
+  // Simple model: average context growth applied via geometric multiplier on loops
+  let totalInputTokens = 0;
+  for (let i = 0; i < agentLoops; i++) {
+    const growthForLoop = useContext ? Math.pow(contextFactor, i / Math.max(1, agentLoops - 1)) : 1;
+    totalInputTokens += baseInputPerLoop * growthForLoop;
+  }
+  // Add tool response tokens (count as input on subsequent calls)
+  const totalToolTokens = toolCalls * toolTokens * agentLoops;
+  totalInputTokens += totalToolTokens;
+
+  // Output tokens per loop
+  const totalOutputTokens = outputTokens * agentLoops;
+
+  // Apply cache discount to system + (a portion of) input
+  let inputCost;
+  if (useCache && cacheRate > 0) {
+    const cachedPortion = totalInputTokens * cacheRate;
+    const uncachedPortion = totalInputTokens * (1 - cacheRate);
+    inputCost = (cachedPortion * cachedPrice) + (uncachedPortion * inputPrice);
+  } else {
+    inputCost = totalInputTokens * inputPrice;
+  }
+
+  const outputCost = totalOutputTokens * outputPrice;
+  const embedCost = ragTokens > 0 ? (ragTokens * embedPrice) : 0;
+
+  // Per-request totals
+  const perRequestBase = inputCost + outputCost + embedCost;
+  const perRequestWithOverhead = perRequestBase * overheadMult;
+
+  // Monthly aggregates
+  const monthlyTokenCost = perRequestWithOverhead * reqsPerMonth;
+  const monthlyFlat = vectorCost + infraCost;
+  const subtotalMonthly = monthlyTokenCost + monthlyFlat;
+  const totalMonthly = subtotalMonthly * (1 + margin);
+
+  // Per-user / per-request adjusted
+  const perRequestAllIn = reqsPerMonth > 0 ? totalMonthly / reqsPerMonth : 0;
+  const perUserDay = (reqPerUser * perRequestWithOverhead) * (1 + margin);
+
+  // Total tokens monthly
+  const totalTokensMonthly = (totalInputTokens + totalOutputTokens) * reqsPerMonth;
+
+  // Render summary
+  $('total-cost').textContent = fmtCurrency(totalMonthly);
+  $('total-sub').textContent = `${fmtNum(reqsPerMonth)} requests/month · ${getStr('model-name')}`;
+  $('per-req').textContent = fmtCurrencyPrecise(perRequestAllIn);
+  $('per-user').textContent = fmtCurrency(perUserDay);
+  $('total-tokens').innerHTML = `${fmtTokensShort(totalTokensMonthly)}<span class="unit">${tokenUnit(totalTokensMonthly)}</span>`;
+  $('annual').textContent = fmtCurrencyCompact(totalMonthly * 12);
+
+  // Hero stats
+  $('hero-stat-1').textContent = fmtCurrencyCompact(totalMonthly);
+  $('hero-stat-2').textContent = `${fmtTokensShort(totalTokensMonthly)}${tokenUnit(totalTokensMonthly)}`;
+  const costPerTask = agentLoops > 0 ? perRequestAllIn : 0;
+  $('hero-stat-3').textContent = fmtCurrencyPrecise(costPerTask);
+  $('hv-input').textContent = fmtNum(inputTokens);
+  $('hv-output').textContent = fmtNum(outputTokens);
+  $('hv-eff').textContent = totalTokensMonthly > 0 ? `$${((totalMonthly / totalTokensMonthly) * 1_000_000).toFixed(2)}` : '$0.00';
+
+  // Breakdown
+  renderBreakdown({
+    'Input Tokens': inputCost * overheadMult * reqsPerMonth,
+    'Output Tokens': outputCost * overheadMult * reqsPerMonth,
+    'Embeddings / RAG': embedCost * overheadMult * reqsPerMonth,
+    'Vector DB': vectorCost,
+    'Infrastructure': infraCost,
+    'Safety Margin': subtotalMonthly * margin,
+  });
+
+  // Chart
+  updateChart({
+    'Input': inputCost * overheadMult * reqsPerMonth,
+    'Output': outputCost * overheadMult * reqsPerMonth,
+    'Embeddings': embedCost * overheadMult * reqsPerMonth,
+    'Vector DB': vectorCost,
+    'Infra': infraCost,
+    'Margin': subtotalMonthly * margin,
+  });
+
+  // Comparison table (LLMs)
+  renderComparison({
+    inputTokens, outputTokens, systemTokens, ragTokens,
+    agentLoops, toolCalls, toolTokens, contextGrowth, useContext,
+    cacheRate, useCache, overheadMult, margin,
+    embedPrice, vectorCost, infraCost,
+    reqsPerMonth, currentTotal: totalMonthly,
+    currentModel: getStr('model-name')
+  });
+
+  // Snapshot for export
+  lastSnapshot = {
+    model: getStr('model-name'),
+    provider: getStr('provider'),
+    timestamp: new Date().toISOString(),
+    inputs: getAllInputs(),
+    results: {
+      monthlyTotal: totalMonthly,
+      annualTotal: totalMonthly * 12,
+      perRequest: perRequestAllIn,
+      perUserDay: perUserDay,
+      totalTokensMonthly: totalTokensMonthly,
+      requestsMonthly: reqsPerMonth,
+      breakdown: {
+        inputCost: inputCost * overheadMult * reqsPerMonth,
+        outputCost: outputCost * overheadMult * reqsPerMonth,
+        embeddings: embedCost * overheadMult * reqsPerMonth,
+        vectorDb: vectorCost,
+        infrastructure: infraCost,
+        margin: subtotalMonthly * margin
       }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>GitHub Pages Static Template</h1>
-      <p>
-        This repository is ready to deploy a self-contained static webpage.
-        Replace this file with your own HTML/CSS/JS (all inline or local files)
-        and push to <code>main</code>.
-      </p>
-      <span class="pill">Deployed by GitHub Actions → Pages</span>
-    </main>
-  </body>
+    }
+  };
+}
+
+function renderBreakdown(items) {
+  const total = Object.values(items).reduce((a, b) => a + b, 0);
+  const wrap = document.getElementById('breakdown');
+  wrap.innerHTML = '';
+  const colors = ['#1e44e6','#3a66ff','#5d8aff','#93b4ff','#0a8754','#d97706'];
+  Object.entries(items).forEach(([name, val], i) => {
+    if (val <= 0 && name !== 'Safety Margin') return;
+    const pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+    const div = document.createElement('div');
+    div.className = 'breakdown-item';
+    div.innerHTML = `
+      <div class="name"><span class="dot" style="background:${colors[i]}"></span>${name}</div>
+      <div><span class="amt">${fmtCurrency(val)}</span><span class="pct">${pct}%</span></div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+/* ============ CHART ============ */
+function initChart() {
+  const ctx = document.getElementById('costChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: ['#1e44e6','#3a66ff','#5d8aff','#93b4ff','#0a8754','#d97706'],
+        borderWidth: 0,
+        borderRadius: 6,
+        spacing: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            font: { family: 'Inter', size: 12, weight: 500 },
+            color: '#1a2447',
+            padding: 12,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (c) => `${c.label}: ${fmtCurrency(c.parsed)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateChart(items) {
+  const filtered = Object.entries(items).filter(([_, v]) => v > 0);
+  chart.data.labels = filtered.map(([k]) => k);
+  chart.data.datasets[0].data = filtered.map(([_, v]) => v);
+  chart.update('none');
+}
+
+/* ============ COMPARISON ============ */
+function renderComparison(ctx) {
+  const tbody = document.getElementById('comp-tbody');
+  tbody.innerHTML = '';
+  TEMPLATES.llm.forEach(m => {
+    const cost = computeForModel(m, ctx);
+    const diff = cost - ctx.currentTotal;
+    const diffPct = ctx.currentTotal > 0 ? (diff / ctx.currentTotal * 100) : 0;
+    const isCurrent = m.name === ctx.currentModel;
+    const tr = document.createElement('tr');
+    if (isCurrent) tr.style.background = 'var(--blue-50)';
+    tr.innerHTML = `
+      <td>${m.name}${isCurrent ? ' <span class="template-tag">current</span>' : ''}</td>
+      <td style="font-family:Inter;color:var(--slate)">${m.provider}</td>
+      <td>$${m.inputPrice.toFixed(2)}</td>
+      <td>$${m.outputPrice.toFixed(2)}</td>
+      <td>${fmtCurrencyPrecise(cost / Math.max(1, ctx.reqsPerMonth))}</td>
+      <td class="cost-cell">${fmtCurrency(cost)}</td>
+      <td class="${diff < 0 ? 'savings-positive' : 'savings-negative'}">
+        ${diff === 0 ? '—' : (diff < 0 ? '−' : '+') + fmtCurrency(Math.abs(diff)) + ` (${diff < 0 ? '−' : '+'}${Math.abs(diffPct).toFixed(0)}%)`}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function computeForModel(model, ctx) {
+  const inputPrice = model.inputPrice / 1_000_000;
+  const outputPrice = model.outputPrice / 1_000_000;
+  const cachedPrice = model.cachedPrice / 1_000_000;
+  const baseInputPerLoop = ctx.inputTokens + ctx.systemTokens + ctx.ragTokens;
+  const contextFactor = ctx.useContext ? ctx.contextGrowth : 1;
+  let totalInputTokens = 0;
+  for (let i = 0; i < ctx.agentLoops; i++) {
+    const g = ctx.useContext ? Math.pow(contextFactor, i / Math.max(1, ctx.agentLoops - 1)) : 1;
+    totalInputTokens += baseInputPerLoop * g;
+  }
+  totalInputTokens += ctx.toolCalls * ctx.toolTokens * ctx.agentLoops;
+  const totalOutputTokens = ctx.outputTokens * ctx.agentLoops;
+  let inputCost;
+  if (ctx.useCache && ctx.cacheRate > 0) {
+    inputCost = totalInputTokens * ctx.cacheRate * cachedPrice + totalInputTokens * (1 - ctx.cacheRate) * inputPrice;
+  } else {
+    inputCost = totalInputTokens * inputPrice;
+  }
+  const outputCost = totalOutputTokens * outputPrice;
+  const embedCost = ctx.ragTokens * ctx.embedPrice / 1_000_000;
+  const perReq = (inputCost + outputCost + embedCost) * ctx.overheadMult;
+  const monthly = perReq * ctx.reqsPerMonth + ctx.vectorCost + ctx.infraCost;
+  return monthly * (1 + ctx.margin);
+}
+
+/* ============ FORMATTING ============ */
+function $(id) { return document.getElementById(id); }
+function fmtCurrency(n) {
+  if (!isFinite(n)) return '$0.00';
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtCurrencyPrecise(n) {
+  if (!isFinite(n)) return '$0.0000';
+  if (n >= 1) return fmtCurrency(n);
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+}
+function fmtCurrencyCompact(n) {
+  if (!isFinite(n)) return '$0';
+  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return '$' + (n / 1_000).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+function fmtNum(n) {
+  return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+function fmtTokensShort(n) {
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1);
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1);
+  if (n >= 1_000) return (n / 1_000).toFixed(1);
+  return n.toFixed(0);
+}
+function tokenUnit(n) {
+  if (n >= 1_000_000_000) return 'B';
+  if (n >= 1_000_000) return 'M';
+  if (n >= 1_000) return 'K';
+  return '';
+}
+
+/* ============ HELPERS ============ */
+function getAllInputs() {
+  const ids = ['model-name','provider','input-price','output-price','cached-price','input-tokens','output-tokens','cache-rate','system-tokens','req-per-user','users','days','agent-loops','tool-calls','tool-tokens','context-growth','embed-price','rag-tokens','vector-cost','infra-cost','overhead-mult','margin'];
+  const out = {};
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) out[id] = el.type === 'number' ? parseFloat(el.value) : el.value;
+  });
+  out['opt-cache'] = getBool('opt-cache');
+  out['opt-context'] = getBool('opt-context');
+  return out;
+}
+
+function resetForm() {
+  if (!confirm('Reset all fields to defaults?')) return;
+  setVal('model-name','Custom Model'); setVal('provider','Custom');
+  setVal('input-price',3); setVal('output-price',15); setVal('cached-price',0.30);
+  setVal('input-tokens',2400); setVal('output-tokens',800); setVal('cache-rate',0); setVal('system-tokens',500);
+  setVal('req-per-user',50); setVal('users',1000); setVal('days',22);
+  setVal('agent-loops',1); setVal('tool-calls',0); setVal('tool-tokens',0); setVal('context-growth',1);
+  setVal('embed-price',0.13); setVal('rag-tokens',0); setVal('vector-cost',0); setVal('infra-cost',0);
+  setVal('overhead-mult',1); setVal('margin',0);
+  document.getElementById('opt-cache').checked = true;
+  document.getElementById('opt-context').checked = true;
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+  recalculate();
+  showToast('Reset to defaults');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  // Re-add icon via pseudo (already in CSS)
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ============ EXPORTS ============ */
+function exportCSV() {
+  const s = lastSnapshot;
+  const rows = [
+    ['TokenForge Cost Estimate'],
+    ['Generated', s.timestamp],
+    ['Model', s.model],
+    ['Provider', s.provider],
+    [],
+    ['=== INPUTS ==='],
+    ...Object.entries(s.inputs).map(([k,v]) => [k, v]),
+    [],
+    ['=== RESULTS ==='],
+    ['Monthly Total (USD)', s.results.monthlyTotal.toFixed(2)],
+    ['Annual Total (USD)', s.results.annualTotal.toFixed(2)],
+    ['Per Request (USD)', s.results.perRequest.toFixed(6)],
+    ['Per User / Day (USD)', s.results.perUserDay.toFixed(2)],
+    ['Total Tokens / Month', s.results.totalTokensMonthly.toFixed(0)],
+    ['Requests / Month', s.results.requestsMonthly.toFixed(0)],
+    [],
+    ['=== BREAKDOWN ==='],
+    ...Object.entries(s.results.breakdown).map(([k,v]) => [k, v.toFixed(2)]),
+  ];
+  const csv = rows.map(r => r.map(cell => `"${String(cell ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  download(csv, `tokenforge-estimate-${dateStr()}.csv`, 'text/csv');
+  showToast('CSV exported');
+}
+
+function exportJSON() {
+  const json = JSON.stringify(lastSnapshot, null, 2);
+  download(json, `tokenforge-estimate-${dateStr()}.json`, 'application/json');
+  showToast('JSON exported');
+}
+
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const s = lastSnapshot;
+  const left = 50;
+  let y = 60;
+
+  // Header bar
+  doc.setFillColor(30, 68, 230);
+  doc.rect(0, 0, 612, 8, 'F');
+
+  // Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(10, 19, 48);
+  doc.text('TokenForge Cost Estimate', left, y); y += 8;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90, 101, 132);
+  doc.text(`Generated: ${new Date(s.timestamp).toLocaleString()}`, left, y + 14); y += 36;
+
+  // Model card
+  doc.setFillColor(245, 247, 252);
+  doc.roundedRect(left, y, 512, 60, 6, 6, 'F');
+  doc.setFontSize(11);
+  doc.setTextColor(90, 101, 132);
+  doc.text('MODEL', left + 16, y + 20);
+  doc.text('PROVIDER', left + 200, y + 20);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.setTextColor(10, 19, 48);
+  doc.text(s.model, left + 16, y + 40);
+  doc.text(s.provider, left + 200, y + 40);
+  y += 80;
+
+  // Big number
+  doc.setFillColor(30, 68, 230);
+  doc.roundedRect(left, y, 512, 80, 6, 6, 'F');
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.text('ESTIMATED MONTHLY COST', left + 20, y + 24);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(32);
+  doc.text(fmtCurrency(s.results.monthlyTotal), left + 20, y + 58);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text(`Annual projection: ${fmtCurrency(s.results.annualTotal)}`, left + 280, y + 58);
+  y += 100;
+
+  // Results section
+  doc.setTextColor(10, 19, 48);
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('Key Metrics', left, y); y += 6;
+  doc.setDrawColor(226, 231, 242); doc.line(left, y, left + 512, y); y += 18;
+
+  const metrics = [
+    ['Per Request', fmtCurrencyPrecise(s.results.perRequest)],
+    ['Per User / Day', fmtCurrency(s.results.perUserDay)],
+    ['Requests / Month', fmtNum(s.results.requestsMonthly)],
+    ['Total Tokens / Month', fmtNum(s.results.totalTokensMonthly)],
+  ];
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  metrics.forEach(([k,v]) => {
+    doc.setTextColor(90, 101, 132); doc.text(k, left, y);
+    doc.setTextColor(10, 19, 48); doc.setFont('helvetica','bold'); doc.text(v, left + 280, y);
+    doc.setFont('helvetica','normal'); y += 20;
+  });
+  y += 8;
+
+  // Breakdown
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('Cost Breakdown (Monthly)', left, y); y += 6;
+  doc.setDrawColor(226, 231, 242); doc.line(left, y, left + 512, y); y += 18;
+
+  Object.entries(s.results.breakdown).forEach(([k,v]) => {
+    if (v <= 0) return;
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    doc.setTextColor(90, 101, 132); doc.text(k, left, y);
+    doc.setTextColor(10, 19, 48); doc.setFont('helvetica','bold');
+    doc.text(fmtCurrency(v), left + 280, y);
+    y += 18;
+  });
+  y += 12;
+
+  // Inputs section
+  if (y > 600) { doc.addPage(); y = 60; }
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('Configuration Parameters', left, y); y += 6;
+  doc.setDrawColor(226, 231, 242); doc.line(left, y, left + 512, y); y += 18;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+
+  Object.entries(s.inputs).forEach(([k,v]) => {
+    if (y > 720) { doc.addPage(); y = 60; }
+    doc.setTextColor(90, 101, 132); doc.text(k.replace(/-/g,' '), left, y);
+    doc.setTextColor(10, 19, 48); doc.text(String(v), left + 280, y);
+    y += 14;
+  });
+
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.setTextColor(133, 144, 171);
+    doc.text('TokenForge · brianhray@gmail.com · Estimates only — no guarantees', left, 770);
+    doc.text(`Page ${i} of ${pageCount}`, 512, 770);
+  }
+
+  doc.save(`tokenforge-estimate-${dateStr()}.pdf`);
+  showToast('PDF exported');
+}
+
+function download(data, filename, mime) {
+  const blob = new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function dateStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+/* ============ GO ============ */
+init();
+</script>
+
+</body>
 </html>
